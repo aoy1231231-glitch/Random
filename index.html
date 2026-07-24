@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>วงล้อสุ่มผู้โชคดี</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            touch-action: pan-y;
+        }
+
+        .wheel-wrapper {
+            position: relative;
+            width: min(88vw, 62vh, 720px);
+            height: min(88vw, 62vh, 720px);
+            margin: 0 auto;
+            z-index: 10;
+        }
+
+        .wheel-stand {
+            position: absolute;
+            bottom: -15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40%;
+            height: 34%;
+            z-index: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stand-neck {
+            width: 10%;
+            height: 50%;
+            border-radius: 999px;
+            background: linear-gradient(180deg, #818cf8 0%, #a855f7 100%);
+            box-shadow: 0 0 20px rgba(139,92,246,0.6);
+        }
+
+        .stand-base {
+            width: 100%;
+            height: 55%;
+            border-radius: 50%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(196,181,253,0.55) 100%);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border: 2px solid rgba(167,139,250,0.8);
+            box-shadow:
+                0 25px 40px -8px rgba(99, 70, 229, 0.45),
+                0 0 0 6px rgba(196,181,253,0.25),
+                inset 0 3px 8px rgba(255,255,255,0.9);
+        }
+
+        .wheel-pointer {
+            position: absolute;
+            top: -3%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 46px solid #ef4444;
+            z-index: 30;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+        }
+
+        .modal-enter {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-50 via-indigo-50 to-purple-100 text-gray-800 min-h-screen flex flex-col overflow-x-hidden p-4">
+
+<!-- Header Section -->
+<header class="w-full max-w-6xl mx-auto flex flex-col items-center gap-3 md:relative md:flex-row md:items-center md:justify-end md:gap-0 py-2 z-50">
+
+    <!-- Title (centered) -->
+    <h1 class="text-2xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-purple-700 leading-[2.2] pt-6 pb-2 text-center md:absolute md:left-1/2 md:-translate-x-1/2 whitespace-nowrap overflow-visible">
+        วงล้อสุ่มผู้โชคดี
+    </h1>
+
+    <div class="flex items-center gap-4">
+        <!-- Settings -->
+        <div class="bg-white/90 backdrop-blur-md rounded-full shadow-md px-4 py-1.5 border border-white/50 flex items-center gap-2">
+            <span class="text-xs md:text-sm font-bold text-gray-700">จำนวน:</span>
+            <div class="flex items-center gap-1">
+                <button id="decreaseBtn" class="w-7 h-7 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 font-bold transition shadow-sm">-</button>
+                <span id="numberCountDisplay" class="w-8 text-center font-bold text-gray-800 text-lg">8</span>
+                <button id="increaseBtn" class="w-7 h-7 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 font-bold transition shadow-sm">+</button>
+            </div>
+        </div>
+
+        <!-- Refresh Button -->
+        <button id="resetBtn" class="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white font-bold py-2 px-4 rounded-full shadow-md hover:shadow-lg active:scale-95 transition text-sm md:text-base">
+            รีเฟรช
+        </button>
+    </div>
+</header>
+
+<!-- Main Wheel Area -->
+<main class="flex-1 w-full flex flex-col items-center justify-center relative mt-2 mb-14">
+
+    <div class="wheel-wrapper">
+        <div class="wheel-stand">
+            <div class="stand-neck"></div>
+            <div class="stand-base"></div>
+        </div>
+        <div class="wheel-pointer"></div>
+        <canvas id="wheelCanvas" class="w-full h-full rounded-full shadow-[0_15px_50px_rgba(79,70,229,0.3)] bg-white border-[8px] border-white z-10 relative"></canvas>
+
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[20%] h-[20%] rounded-full bg-white shadow-2xl z-20 flex items-center justify-center p-1 border-4 border-gray-100">
+            <button id="centerSpinBtn" class="w-full h-full rounded-full bg-gradient-to-b from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 active:bg-red-800 text-white font-black text-lg md:text-2xl shadow-inner flex items-center justify-center transition-all cursor-pointer">
+                สุ่ม
+            </button>
+        </div>
+    </div>
+</main>
+
+<!-- Modal -->
+<div id="winnerModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm">
+    <div class="bg-white rounded-[2rem] p-6 max-w-md w-full mx-4 shadow-2xl text-center transform scale-95 transition-transform duration-300 border-4 border-white" id="modalContent">
+        <h2 class="text-xl font-bold text-gray-700 mb-2">ผู้โชคดีคือหมายเลข</h2>
+        <div class="my-4 relative leading-none">
+            <span id="winnerNumber" class="font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-yellow-500 to-red-600" style="font-size: clamp(6rem, 22vw, 11rem);">8</span>
+        </div>
+        <button id="closeModalBtn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-3 rounded-2xl shadow-lg active:scale-95 transition">
+            ตกลง
+        </button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const centerSpinBtn = document.getElementById('centerSpinBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const decreaseBtn = document.getElementById('decreaseBtn');
+    const increaseBtn = document.getElementById('increaseBtn');
+    const numberCountDisplay = document.getElementById('numberCountDisplay');
+    const modal = document.getElementById('winnerModal');
+    const modalContent = document.getElementById('modalContent');
+    const winnerNumberText = document.getElementById('winnerNumber');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+
+    let totalMaxNumbers = 8;
+    let currentItems = [];
+    let currentAngle = 0;
+    let isSpinning = false;
+    let angularVelocity = 0;
+    let lastWinningIndex = -1;
+    const friction = 0.985;
+    const minVelocityToStop = 0.002;
+    const COLORS = ['#FF595E', '#FFCA3A', '#8AC926', '#1982C4', '#6A4C93', '#FF9F1C', '#F15BB5', '#00BBF9', '#00F5D4', '#FEE440', '#E01E37', '#7209B7', '#4361EE', '#4CC9F0', '#38B000'];
+
+    function generateItems(count) { return Array.from({length: count}, (_, i) => i + 1); }
+
+    function resizeCanvas() {
+        const size = 1000;
+        canvas.width = size;
+        canvas.height = size;
+        drawWheel();
+    }
+
+    function drawWheel() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const center = canvas.width / 2;
+        const radius = center - 5;
+        if (currentItems.length === 0) return;
+        const sliceAngle = (2 * Math.PI) / currentItems.length;
+
+        for (let i = 0; i < currentItems.length; i++) {
+            const num = currentItems[i];
+            const startAngle = currentAngle + i * sliceAngle;
+            ctx.beginPath();
+            ctx.moveTo(center, center);
+            ctx.arc(center, center, radius, startAngle, startAngle + sliceAngle);
+            ctx.closePath();
+            ctx.fillStyle = COLORS[(num - 1) % COLORS.length];
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            ctx.save();
+            ctx.translate(center, center);
+            ctx.rotate(startAngle + sliceAngle / 2);
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            // Text sits at a fixed fraction of the radius so it always clears
+            // the center hub and never crowds the outer rim, regardless of
+            // how many slices there are.
+            const textRadius = radius * 0.7;
+            let fontSize = Math.min(150, Math.max(28, (radius * sliceAngle) / 0.85));
+            ctx.font = `800 ${fontSize}px 'Sarabun', sans-serif`;
+
+            // Soft glow behind the number
+            ctx.shadowColor = "rgba(0,0,0,0.35)";
+            ctx.shadowBlur = fontSize * 0.18;
+            ctx.shadowOffsetY = fontSize * 0.03;
+
+            // Dark outline for a bold, sticker-like pop
+            ctx.lineJoin = "round";
+            ctx.miterLimit = 2;
+            ctx.lineWidth = fontSize * 0.12;
+            ctx.strokeStyle = "rgba(0,0,0,0.28)";
+            ctx.strokeText(num, textRadius, 0);
+
+            // Reset shadow before the crisp fill so it doesn't double up
+            ctx.shadowColor = "transparent";
+            ctx.fillStyle = "#ffffff";
+            ctx.fillText(num, textRadius, 0);
+            ctx.restore();
+        }
+    }
+
+    function spin() {
+        if (isSpinning || currentItems.length === 0) return;
+        isSpinning = true;
+        angularVelocity = Math.random() * 0.2 + 0.4;
+        animate();
+    }
+
+    function animate() {
+        if (angularVelocity > minVelocityToStop) {
+            currentAngle += angularVelocity;
+            angularVelocity *= friction;
+            drawWheel();
+            requestAnimationFrame(animate);
+        } else {
+            isSpinning = false;
+            angularVelocity = 0;
+            const sliceAngle = (2 * Math.PI) / currentItems.length;
+            let normalizedTopAngle = (3 * Math.PI / 2 - currentAngle) % (2 * Math.PI);
+            if (normalizedTopAngle < 0) normalizedTopAngle += 2 * Math.PI;
+            lastWinningIndex = Math.floor(normalizedTopAngle / sliceAngle);
+            showWinnerModal(currentItems[lastWinningIndex]);
+        }
+    }
+
+    function showWinnerModal(num) {
+        winnerNumberText.textContent = num;
+        modal.classList.remove('hidden');
+        setTimeout(() => { modal.classList.remove('opacity-0'); modalContent.classList.add('modal-enter'); }, 10);
+    }
+
+    function hideWinnerModal() {
+        modal.classList.add('opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            if (lastWinningIndex > -1) {
+                currentItems.splice(lastWinningIndex, 1);
+                drawWheel();
+            }
+        }, 300);
+    }
+
+    function fullReset() {
+        if (isSpinning) return;
+        currentItems = generateItems(totalMaxNumbers);
+        currentAngle = 0;
+        drawWheel();
+    }
+
+    decreaseBtn.addEventListener('click', () => { if(totalMaxNumbers > 2) { totalMaxNumbers--; numberCountDisplay.textContent = totalMaxNumbers; fullReset(); } });
+    increaseBtn.addEventListener('click', () => { if(totalMaxNumbers < 50) { totalMaxNumbers++; numberCountDisplay.textContent = totalMaxNumbers; fullReset(); } });
+    centerSpinBtn.addEventListener('click', spin);
+    resetBtn.addEventListener('click', fullReset);
+    closeModalBtn.addEventListener('click', hideWinnerModal);
+
+    window.onload = () => { resizeCanvas(); fullReset(); };
+</script>
+</body>
+</html>
